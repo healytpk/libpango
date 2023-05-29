@@ -197,4 +197,76 @@ PangoFontDescription *font_description_from_pattern (FcPattern *pattern,
 
 G_END_DECLS
 
+#include <assert.h>      // assert
+#include <stdint.h>      // intptr_t
+#include <string.h>      // NULL, memset
+#include <stdlib.h>      // malloc, realloc, free, atexit
+#include <threads.h>     // call_once, mtx_init
+#include <stdatomic.h>   // atomic_int
+
+struct _FcPattern {
+    int num, size;
+    intptr_t elts_offset;
+    struct { atomic_int count; } ref;
+};
+
+#define POINTERS_PER_ALLOC (64u)
+#define BYTES_PER_ALLOC (POINTERS_PER_ALLOC * sizeof(FcPattern*))
+static FcPattern **g_array_of_patterns_to_destroy = NULL;
+static unsigned g_count_allocs = 0u;
+static mtx_t g_mtx_for_pattern_destroyer;
+static once_flag g_flag_for_init_pattern_destroyer = ONCE_FLAG_INIT;
+
+static void AtExit_DestroyAllPatterns(void);
+
+static void InitialiseArrayOfPatternsToDestroy(void)
+{
+    g_array_of_patterns_to_destroy = malloc(BYTES_PER_ALLOC);
+    assert( NULL != g_array_of_patterns_to_destroy );
+    g_count_allocs = 1u;
+    memset(g_array_of_patterns_to_destroy,0,BYTES_PER_ALLOC);
+    mtx_init(&g_mtx_for_pattern_destroyer, mtx_plain);
+    atexit(AtExit_DestroyAllPatterns);
+}
+
+static void AddPatternToDestructiveArray(FcPattern *const p)
+{
+    call_once(&g_flag_for_init_pattern_destroyer, InitialiseArrayOfPatternsToDestroy);
+
+    mtx_lock(&g_mtx_for_pattern_destroyer);
+
+    if ( NULL != g_array_of_patterns_to_destroy[POINTERS_PER_ALLOC*(g_count_allocs-1u) + (POINTERS_PER_ALLOC-1u)] )
+    {
+        g_array_of_patterns_to_destroy = realloc( g_array_of_patterns_to_destroy, BYTES_PER_ALLOC * (1u + g_count_allocs) );
+        assert( NULL != g_array_of_patterns_to_destroy );
+        ++g_count_allocs;
+        memset(g_array_of_patterns_to_destroy + POINTERS_PER_ALLOC*(g_count_allocs - 1u), 0, BYTES_PER_ALLOC);
+    }
+
+    FcPattern **first_nullptr = g_array_of_patterns_to_destroy + POINTERS_PER_ALLOC*(g_count_allocs - 1u);
+    for ( ; NULL != *first_nullptr; ++first_nullptr ) { /* Do Nothing */ }
+
+    *first_nullptr = p;
+
+    mtx_unlock(&g_mtx_for_pattern_destroyer);
+}
+
+static void AtExit_DestroyAllPatterns(void)
+{
+    for ( unsigned i = 0u; i < (POINTERS_PER_ALLOC*g_count_allocs); ++i )
+    {
+        FcPattern *const p = g_array_of_patterns_to_destroy[i];
+
+        if ( NULL == p ) break;
+
+        if ( p->ref.count <= 0 ) continue;
+
+        int count = p->ref.count;
+        while ( count-- ) FcPatternDestroy(p);
+    }
+
+    free(g_array_of_patterns_to_destroy);
+    mtx_destroy(&g_mtx_for_pattern_destroyer);
+}
+
 #endif /* __PANGO_FC_FONT_MAP_PRIVATE_H__ */

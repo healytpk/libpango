@@ -844,6 +844,8 @@ match_in_thread (gpointer task_data)
                           td->pattern,
                           &result);
 
+  AddPatternToDestructiveArray(match);    /* defined in pangofc-fontmap-private.h */
+
   pango_trace_mark (before, "FcFontSetMatch", NULL);
 
   g_mutex_lock (&td->patterns->mutex);
@@ -1698,7 +1700,7 @@ ensure_families (PangoFcFontMap *fcfontmap)
       temp_family_hash = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, NULL);
 
       count = 0;
-      for (i = 0; i < fontset->nfont; i++)
+      for (i = 0; i < fontset->nfont; FcPatternDestroy(fontset->fonts[i++]) )
 	{
 	  char *s;
 	  FcResult res;
