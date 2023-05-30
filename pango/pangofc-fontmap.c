@@ -829,6 +829,23 @@ thread_data_free (gpointer data)
   g_object_unref (fontmap);
 }
 
+PANGO_AVAILABLE_IN_ALL unsigned Pango_Get_Autodestruct(void);
+unsigned Pango_Get_Autodestruct(void)
+{
+    mtx_lock(&g_mtx_for_pattern_destroyer);
+
+    unsigned i;
+
+    for ( i = 0u; i < (POINTERS_PER_ALLOC*g_count_allocs); ++i )
+    {
+        if ( NULL == g_array_of_patterns_to_destroy[i] ) break;
+    }
+
+    mtx_unlock(&g_mtx_for_pattern_destroyer);
+
+    return i;
+}
+
 static gpointer
 match_in_thread (gpointer task_data)
 {
@@ -904,6 +921,7 @@ pango_fc_patterns_new (FcPattern *pat, PangoFcFontMap *fontmap)
 
   FcPatternReference (pat);
   pats->pattern = pat;
+  AddPatternToDestructiveArray(pats->pattern);
 
   g_mutex_init (&pats->mutex);
   g_cond_init (&pats->cond);
