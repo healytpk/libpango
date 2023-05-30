@@ -70,6 +70,23 @@ static void AtExit_DestroyAllPatterns(void)
     mtx_destroy(&g_mtx_for_pattern_destroyer);
 }
 
+PANGO_AVAILABLE_IN_ALL unsigned Pango_Get_Autodestruct(void);
+unsigned Pango_Get_Autodestruct(void)
+{
+    mtx_lock(&g_mtx_for_pattern_destroyer);
+
+    unsigned i;
+
+    for ( i = 0u; i < (POINTERS_PER_ALLOC*g_count_allocs); ++i )
+    {
+        if ( NULL == g_array_of_patterns_to_destroy[i] ) break;
+    }
+
+    mtx_unlock(&g_mtx_for_pattern_destroyer);
+
+    return i;
+}
+
 /* Pango
  * pangofc-fontmap.c: Base fontmap type for fontconfig-based backends
  *
@@ -899,23 +916,6 @@ thread_data_free (gpointer data)
   g_free (td);
 
   g_object_unref (fontmap);
-}
-
-PANGO_AVAILABLE_IN_ALL unsigned Pango_Get_Autodestruct(void);
-unsigned Pango_Get_Autodestruct(void)
-{
-    mtx_lock(&g_mtx_for_pattern_destroyer);
-
-    unsigned i;
-
-    for ( i = 0u; i < (POINTERS_PER_ALLOC*g_count_allocs); ++i )
-    {
-        if ( NULL == g_array_of_patterns_to_destroy[i] ) break;
-    }
-
-    mtx_unlock(&g_mtx_for_pattern_destroyer);
-
-    return i;
 }
 
 static gpointer
