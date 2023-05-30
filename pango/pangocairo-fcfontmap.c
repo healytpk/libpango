@@ -112,7 +112,6 @@ pango_cairo_fc_font_map_fontset_key_substitute (PangoFcFontMap    *fcfontmap G_G
 				      pattern);
 
   FcDefaultSubstitute (pattern);
-  AddPatternToDestructiveArray(pattern);    /* defined in pangofc-fontmap-private.h */
 }
 
 static double
