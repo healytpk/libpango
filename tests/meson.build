@@ -283,7 +283,6 @@ foreach t: tests
   name = t[0]
   src = t.get(1, [ '@0@.c'.format(name) ])
   deps = t.get(2, [ libpango_dep ])
-
   custom_target(name + '.test',
                 output: name + '.test',
                 command: [
@@ -295,11 +294,15 @@ foreach t: tests
                 install: get_option('install-tests'),
                 install_dir: installed_test_datadir)
 
+  common_cflags  += [ '-ggdb3', '-fsanitize=address,leak,undefined,pointer-compare,pointer-subtract,float-divide-by-zero,float-cast-overflow', '-fsanitize-address-use-after-scope', '-fcf-protection=full', '-fstack-protector-all', '-fstack-clash-protection', '-fvtv-debug', '-fvtv-counts', '-finstrument-functions', '-D_GLIBC_DEBUG', '-D_GLIBC_DEBUG_PEDANTIC', '-D_GLIBCXX_DEBUG', '-D_GLIBCXX_DEBUG_PEDANTIC' ]
+  common_ldflags += [ '-ggdb3', '-fsanitize=address,leak,undefined,pointer-compare,pointer-subtract,float-divide-by-zero,float-cast-overflow', '-fsanitize-address-use-after-scope', '-fcf-protection=full', '-fstack-protector-all', '-fstack-clash-protection', '-fvtv-debug', '-fvtv-counts', '-finstrument-functions', '-D_GLIBC_DEBUG', '-D_GLIBC_DEBUG_PEDANTIC', '-D_GLIBCXX_DEBUG', '-D_GLIBCXX_DEBUG_PEDANTIC' ]
+
   bin = executable(name, src,
                    dependencies: deps,
                    include_directories: root_inc,
                    c_args: common_cflags + pango_debug_cflags + test_cflags,
                    cpp_args: common_cppflags + pango_debug_cflags + test_cflags,
+                   link_args: common_ldflags,
                    install: get_option('install-tests'),
                    install_dir: installed_test_bindir)
 

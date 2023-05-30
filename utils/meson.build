@@ -30,10 +30,14 @@ if cairo_dep.found()
   pango_view_deps += libpangocairo_dep
 endif
 
+common_cflags  += [ '-ggdb3', '-fsanitize=address,leak,undefined,pointer-compare,pointer-subtract,float-divide-by-zero,float-cast-overflow', '-fsanitize-address-use-after-scope', '-fcf-protection=full', '-fstack-protector-all', '-fstack-clash-protection', '-fvtv-debug', '-fvtv-counts', '-finstrument-functions', '-D_GLIBC_DEBUG', '-D_GLIBC_DEBUG_PEDANTIC', '-D_GLIBCXX_DEBUG', '-D_GLIBCXX_DEBUG_PEDANTIC' ]
+common_ldflags += [ '-ggdb3', '-fsanitize=address,leak,undefined,pointer-compare,pointer-subtract,float-divide-by-zero,float-cast-overflow', '-fsanitize-address-use-after-scope', '-fcf-protection=full', '-fstack-protector-all', '-fstack-clash-protection', '-fvtv-debug', '-fvtv-counts', '-finstrument-functions', '-D_GLIBC_DEBUG', '-D_GLIBC_DEBUG_PEDANTIC', '-D_GLIBCXX_DEBUG', '-D_GLIBCXX_DEBUG_PEDANTIC' ]
+
 pango_view = executable('pango-view', pango_view_sources,
                         dependencies: pango_view_deps,
                         include_directories: [ root_inc ],
                         install: true,
+                        link_args: common_ldflags,
                         c_args: common_cflags + pango_debug_cflags + [
                           '-DPACKAGE_NAME="@0@"'.format(meson.project_name()),
                           '-DPACKAGE_VERSION="@0@"'.format(meson.project_version()),
@@ -74,6 +78,7 @@ if cairo_dep.found()
                           dependencies: pango_list_deps,
                           include_directories: [ root_inc ],
                           install: true,
+                          link_args: common_ldflags,
                           c_args: common_cflags + pango_debug_cflags + [
                            '-DPACKAGE_NAME="@0@"'.format(meson.project_name()),
                            '-DPACKAGE_VERSION="@0@"'.format(meson.project_version()),
@@ -94,6 +99,7 @@ if cairo_dep.found()
                                   dependencies: pango_segmentation_deps,
                                   include_directories: [ root_inc ],
                                   install: true,
+                                  link_args: common_ldflags,
                                   c_args: common_cflags + pango_debug_cflags + [
                                    '-DPACKAGE_NAME="@0@"'.format(meson.project_name()),
                                    '-DPACKAGE_VERSION="@0@"'.format(meson.project_version()),
