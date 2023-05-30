@@ -283,6 +283,7 @@ foreach t: tests
   name = t[0]
   src = t.get(1, [ '@0@.c'.format(name) ])
   deps = t.get(2, [ libpango_dep ])
+
   custom_target(name + '.test',
                 output: name + '.test',
                 command: [
